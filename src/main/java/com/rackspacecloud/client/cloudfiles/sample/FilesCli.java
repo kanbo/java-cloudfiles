@@ -73,6 +73,8 @@ public class FilesCli {
 		"   put container localfile           Upload the local file to the container\n" +
 		"   delete container                  Delete the container\n" +
 		"   delete container/object           Delete the given object\n" +
+		"   regions                           List the available regions\n" +
+		"   setregion region                  Set the current region\n" +
 		"   help                              Print this help message\n" +
      	"   exit                              Exit the program\n";
 	
@@ -109,7 +111,8 @@ public class FilesCli {
 					// List containers
 					List<FilesContainer> containers = client.listContainers();
 					int nContainers = containers.size();
-					System.out.println("The account has " + nContainers + ((nContainers == 1) ? " container" : " containers"));
+					System.out.println("The account has " + nContainers + ((nContainers == 1) ? " container" : " containers")
+							+ " in region " + client.getCurrentRegion());
 					for(FilesContainer container : containers) {
 						System.out.println("   " + container.getName());
 					}
@@ -359,6 +362,50 @@ public class FilesCli {
 			return true;	
 		}
 		
+		// -- "regions" - show available regions  
+		if ("regions".equals(command)) {
+			if (components.length == 1) {
+				try {
+					String[] regions = client.getRegions();
+					if (regions.length > 0) {
+						System.out.println("Available regions:");
+						for (int i = 0; i < regions.length; i++) {
+							System.out.println("  " + regions[i]);
+						}
+					} else {
+						System.out.println("No regions found");
+						System.out.println();
+					}
+				}
+				catch (Exception e) {
+					System.err.println("Error getting container info");
+					e.printStackTrace();
+					return true;
+				} 	
+			} else {
+				System.out.println("Usage:\n  regions");
+			}
+			return true;
+		}
+		
+		// -- "setregion <region>" - set the current region
+		if ("setregion".equals(command)) {
+			if (components.length == 2) {
+				try {
+					client.setCurrentRegion(components[1]);
+					System.out.println("Current region set to " + client.getCurrentRegion());
+					System.out.println();
+				}
+				catch (Exception e) {
+					System.err.println("Error setting region");
+					return true;
+				} 	
+			} else {
+				System.out.println("Usage:\n  setregion region");
+			}
+			return true;
+		}
+
 		// We should never get here
 		System.out.println("Unrecognized command " + command);
 		System.out.println(HELP_STRING);
