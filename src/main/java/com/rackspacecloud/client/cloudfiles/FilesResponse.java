@@ -4,20 +4,31 @@
 
 package com.rackspacecloud.client.cloudfiles;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.util.EntityUtils;
-import org.apache.http.HttpEntity;
 import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.io.InputStream;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 
 public class FilesResponse
 {
     private HttpResponse response = null;
     private HttpEntity entity = null;
+    
+    private String authToken = null;
+    private List<FilesRegion> regions = new ArrayList<FilesRegion>();
 
     private static Logger logger = Logger.getLogger(FilesResponse.class);
 
@@ -61,7 +72,11 @@ public class FilesResponse
      */
     public String getAuthToken ()
     {
-        return getResponseHeader(FilesUtil.getProperty("auth_token_name", FilesConstants.X_AUTH_TOKEN)).getValue();
+        //return getResponseHeader(FilesUtil.getProperty("auth_token_name", FilesConstants.X_AUTH_TOKEN)).getValue();
+    	if (authToken == null) {
+    		parseAuthResponse();
+    	}
+    	return this.authToken;
     }
 
     /**
@@ -331,4 +346,45 @@ public class FilesResponse
     public String getContentEncoding() {
     	return entity.getContentEncoding().getValue();
     }
+
+	public Collection<FilesRegion> getRegions() {
+		if (authToken == null) {
+			parseAuthResponse();
+		}
+		return regions;
+	}
+	    
+	private void parseAuthResponse() {
+		try {
+			String jsonString = EntityUtils.toString(this.response.getEntity());
+			JSONObject json = (JSONObject) JSONValue.parse(jsonString);
+			JSONObject auth = (JSONObject) json.get("auth");
+			JSONObject token = (JSONObject) auth.get("token");
+			this.authToken = (String) token.get("id");
+
+			Map<String, String> cdnUrls = new HashMap<String, String>();
+			JSONObject serviceCatalog = (JSONObject) auth.get("serviceCatalog");
+			JSONArray cdnRegions = (JSONArray) serviceCatalog.get("cloudFilesCDN");
+			for (int i = 0; i < cdnRegions.size(); i++) {
+				JSONObject cdnRegion = (JSONObject) cdnRegions.get(i);
+				String regionId = (String) cdnRegion.get("region");
+				String publicUrl = (String) cdnRegion.get("publicURL");
+				cdnUrls.put(regionId, publicUrl);
+			}
+
+			JSONArray filesRegions = (JSONArray) serviceCatalog.get("cloudFiles");
+			for (int i = 0; i < filesRegions.size(); i++) {
+				JSONObject filesRegion = (JSONObject) filesRegions.get(i);
+				String regionId = (String) filesRegion.get("region");
+				String publicUrl = (String) filesRegion.get("publicURL");
+				String cdnUrl = cdnUrls.containsKey(regionId) ? cdnUrls.get(regionId) : "";
+				Boolean v1Default = filesRegion.containsKey("v1Default") 
+						? (Boolean) filesRegion.get("v1Default")
+						: Boolean.FALSE;
+				regions.add(new FilesRegion(regionId, publicUrl, cdnUrl, v1Default.booleanValue()));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }

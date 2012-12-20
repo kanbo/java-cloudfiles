@@ -4,3 +4,6 @@ target
 .checkstyle
 .classpath
 */.checkstyle-rules.xml
+dist/
+classes/
+logs/
