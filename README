@@ -1,3 +1,18 @@
+java-cloudfiles
+===============
+
+IMPORTANT NOTE:
+The java-cloudfiles bindings are no longer being maintained and their
+use is deprecated. They will not be available after August 1, 2013.
+
+We recommend that you use the jclouds SDK; this supports
+all of the Rackspace cloud products, and not just Cloud Files.
+
+See http://docs.rackspace.com/sdks/guide/content/java.html to download or to contribute.
+
+
+
+
 In order to build:
 
 1)  Download the repository (which if you're doing this, you already have)
